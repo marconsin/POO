@@ -1,125 +1,76 @@
-/**
- * Simulação de Banco Digital Simplificado
- */
-
 class ContaBancaria {
-  constructor(nome) {
-    this.nome = nome;
-    this.saldo = 0;
-    this.historico = []; // Armazena o extrato
-  }
-
-  // Helper para formatar moeda em Reais (BRL)
-  formatarMoeda(valor) {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(valor);
-  }
-
-  // Helper para registrar transações
-  registrarTransacao(tipo, valor, descricao = '') {
-    const data = new Date().toLocaleString('pt-BR');
-    this.historico.push({
-      data,
-      tipo,
-      valor: this.formatarMoeda(valor),
-      descricao
-    });
-  }
-
-  // 1. Funcionalidade: Depositar
-  depositar(valor) {
-    if (valor <= 0) {
-      console.error(`[Erro] Depósito inválido. Valor deve ser positivo.`);
-      return;
+    constructor(nome) {
+        this.nome = nome;
+        this.saldo = 0;
+        this.historico = [];
     }
-    this.saldo += valor;
-    this.registrarTransacao('Entrada', valor, 'Depósito via Pix');
-    console.log(`✅ Depósito de ${this.formatarMoeda(valor)} realizado com sucesso!`);
-  }
 
-  // 2. Funcionalidade: Sacar (necessário para pagamentos/transferências)
-  sacar(valor) {
-    if (valor > this.saldo) {
-      console.error(`[Erro] Saldo insuficiente para sacar ${this.formatarMoeda(valor)}.`);
-      return false;
+    // registra a operação no histórico
+    registrar(tipo, valor, descricao) {
+        this.historico.push({
+            data: new Date().toLocaleTimeString(),
+            tipo,
+            valor,
+            descricao
+        });
     }
-    this.saldo -= valor;
-    return true;
-  }
 
-  // 3. Funcionalidade: Transferir
-  transferir(valor, contaDestino) {
-    if (valor <= 0) return console.error("[Erro] Valor inválido.");
-    if (contaDestino === this) return console.error("[Erro] Não pode transferir para si mesmo.");
-
-    console.log(`🔄 Iniciando transferência para ${contaDestino.nome}...`);
-    
-    const sucessoSaque = this.sacar(valor); // Tenta tirar o dinheiro primeiro
-
-    if (sucessoSaque) {
-      // Adiciona dinheiro na conta destino sem gerar log de "Depósito comum"
-      contaDestino.saldo += valor;
-      contaDestino.registrarTransacao('Entrada', valor, `Transferência recebida de ${this.nome}`);
-      
-      // Registra a saída na conta atual
-      this.registrarTransacao('Saída', valor, `Transferência enviada para ${contaDestino.nome}`);
-      console.log(`✅ Transferência realizada!`);
+    depositar(valor) {
+        if (valor <= 0) return console.log('Valor inválido.');
+        
+        this.saldo += valor;
+        this.registrar('Entrada', valor, 'Deposito');
+        console.log(`Deposito de R$ ${valor} feito com sucesso.`);
     }
-  }
 
-  // 4. Funcionalidade Extra: Pagar Boleto
-  pagarBoleto(valor, codigoBarras) {
-    console.log(`📄 Tentando pagar boleto: ${codigoBarras}...`);
-    const sucesso = this.sacar(valor);
-    
-    if (sucesso) {
-      this.registrarTransacao('Saída', valor, 'Pagamento de Boleto');
-      console.log(`✅ Boleto pago com sucesso!`);
+    // retorna true se conseguiu sacar, false se falhou
+    sacar(valor) {
+        if (valor > this.saldo) {
+            console.log(`Saldo insuficiente para sacar R$ ${valor}`);
+            return false;
+        }
+        this.saldo -= valor;
+        return true;
     }
-  }
 
-  // 5. Funcionalidade: Ver Extrato
-  verExtrato() {
-    console.log(`\n========================================`);
-    console.log(`EXTRATO: ${this.nome.toUpperCase()}`);
-    console.log(`----------------------------------------`);
-    
-    if (this.historico.length === 0) {
-      console.log("Nenhuma movimentação registrada.");
-    } else {
-      this.historico.forEach((item, index) => {
-        const seta = item.tipo === 'Entrada' ? '🟢' : '🔴';
-        console.log(`${index + 1}. ${item.data} | ${seta} ${item.tipo}`);
-        console.log(`   ${item.descricao} | Valor: ${item.valor}`);
-      });
+    transferir(valor, contaDestino) {
+        // tenta sacar primeiro
+        if (this.sacar(valor)) {
+            // adiciona na conta do amigo
+            contaDestino.saldo += valor;
+            contaDestino.registrar('Entrada', valor, `Recebido de ${this.nome}`);
+            
+            // registra a saida na sua conta
+            this.registrar('Saida', valor, `Enviado para ${contaDestino.nome}`);
+            console.log('Transferencia realizada.');
+        }
     }
-    
-    console.log(`----------------------------------------`);
-    console.log(`💰 SALDO ATUAL: ${this.formatarMoeda(this.saldo)}`);
-    console.log(`========================================\n`);
-  }
+
+    pagarBoleto(valor) {
+        if (this.sacar(valor)) {
+            this.registrar('Saida', valor, 'Pagamento Boleto');
+            console.log('Boleto pago.');
+        }
+    }
+
+    verExtrato() {
+        console.log(`\n--- Extrato: ${this.nome} ---`);
+        this.historico.forEach(item => {
+            console.log(`${item.data} | ${item.tipo} | R$ ${item.valor} | ${item.descricao}`);
+        });
+        console.log(`Saldo Final: R$ ${this.saldo}\n`);
+    }
 }
 
-// --- ÁREA DE TESTES (SIMULAÇÃO) ---
+// --- TESTES ---
 
-// Criando dois usuários
-const minhaConta = new ContaBancaria("Dev FullStack");
-const contaAmigo = new ContaBancaria("João Silva");
+const conta1 = new ContaBancaria("Dev FullStack");
+const conta2 = new ContaBancaria("João Silva");
 
-// 1. Fazendo um depósito inicial
-minhaConta.depositar(1500.00);
+conta1.depositar(1500);
+conta1.pagarBoleto(250);
+conta1.transferir(5000, conta2); // teste de erro (sem saldo)
+conta1.transferir(300, conta2);  // sucesso
 
-// 2. Pagando uma conta (Funcionalidade extra)
-minhaConta.pagarBoleto(250.50, "83291.32131.12312.31231");
-
-// 3. Tentando transferir mais do que tem (Teste de erro)
-minhaConta.transferir(5000, contaAmigo); 
-
-// 4. Transferindo valor válido para o João
-minhaConta.transferir(300.00, contaAmigo);
-
-// 5. Imprimindo os extratos finais
-minhaConta.verExtrato();
-contaAmigo.verExtrato();
+conta1.verExtrato();
+conta2.verExtrato();
