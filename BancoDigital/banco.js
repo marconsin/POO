@@ -1,76 +1,304 @@
-class ContaBancaria {
-    constructor(nome) {
-        this.nome = nome;
-        this.saldo = 0;
-        this.historico = [];
-    }
+// aqui comeca a logica do banco do tigrudo
 
-    // registra a operação no histórico
-    registrar(tipo, valor, descricao) {
-        this.historico.push({
-            data: new Date().toLocaleTimeString(),
-            tipo,
-            valor,
-            descricao
-        });
-    }
+// classe regulador financeiro (fiscal do jogo)
+class ReguladorFinanceiro {
+    #registroSuspeito = [];
 
-    depositar(valor) {
-        if (valor <= 0) return console.log('Valor inválido.');
-        
-        this.saldo += valor;
-        this.registrar('Entrada', valor, 'Deposito');
-        console.log(`Deposito de R$ ${valor} feito com sucesso.`);
-    }
-
-    // retorna true se conseguiu sacar, false se falhou
-    sacar(valor) {
-        if (valor > this.saldo) {
-            console.log(`Saldo insuficiente para sacar R$ ${valor}`);
-            return false;
+    // audita se o valor e muito alto (acima de 1000)
+    auditarTransacao(conta, quantia, tipoOperacao) {
+        if (Math.abs(quantia) > 1000) {
+            const alerta = {
+                instituicao: conta.bancoPertencente.nomeFantasia,
+                filial: conta.filial.codigoFilial,
+                contaAlvo: conta.idConta,
+                valor: quantia,
+                tipo: tipoOperacao,
+                timestamp: new Date().toLocaleString()
+            };
+            this.#registroSuspeito.push(alerta);
+            console.warn("ALERTA: Movimentação de baleia detectada!", alerta);
         }
-        this.saldo -= valor;
-        return true;
-    }
-
-    transferir(valor, contaDestino) {
-        // tenta sacar primeiro
-        if (this.sacar(valor)) {
-            // adiciona na conta do amigo
-            contaDestino.saldo += valor;
-            contaDestino.registrar('Entrada', valor, `Recebido de ${this.nome}`);
-            
-            // registra a saida na sua conta
-            this.registrar('Saida', valor, `Enviado para ${contaDestino.nome}`);
-            console.log('Transferencia realizada.');
-        }
-    }
-
-    pagarBoleto(valor) {
-        if (this.sacar(valor)) {
-            this.registrar('Saida', valor, 'Pagamento Boleto');
-            console.log('Boleto pago.');
-        }
-    }
-
-    verExtrato() {
-        console.log(`\n--- Extrato: ${this.nome} ---`);
-        this.historico.forEach(item => {
-            console.log(`${item.data} | ${item.tipo} | R$ ${item.valor} | ${item.descricao}`);
-        });
-        console.log(`Saldo Final: R$ ${this.saldo}\n`);
     }
 }
 
-// --- TESTES ---
+// classe principal da instituicao
+class Instituicao {
+    nomeFantasia;
+    #regulador;
+    #filiais = [];
+    #historicoGlobal = [];
 
-const conta1 = new ContaBancaria("Dev FullStack");
-const conta2 = new ContaBancaria("João Silva");
+    constructor(nome, reguladorRef) {
+        this.nomeFantasia = nome;
+        this.#regulador = reguladorRef;
+    }
 
-conta1.depositar(1500);
-conta1.pagarBoleto(250);
-conta1.transferir(5000, conta2); // teste de erro (sem saldo)
-conta1.transferir(300, conta2);  // sucesso
+    inaugurarFilial(codigo, apelido) {
+        const novaFilial = new Filial(codigo, apelido, this);
+        this.#filiais.push(novaFilial);
+        return novaFilial;
+    }
 
-conta1.verExtrato();
-conta2.verExtrato();
+    registrarOperacao(contaEnvolvida, valor, descricao, contaDestino = null) {
+        // guardando no log
+        this.#historicoGlobal.push({
+            conta: contaEnvolvida.idConta,
+            valor: valor,
+            desc: descricao,
+            data: new Date()
+        });
+        // reportando ao fiscal
+        this.#regulador.auditarTransacao(contaEnvolvida, valor, descricao);
+    }
+
+    localizarContaGlobal(idContaBusca) {
+        for (let f of this.#filiais) {
+            const encontrada = f.buscarContaNaFilial(idContaBusca);
+            if (encontrada) return encontrada;
+        }
+        return null;
+    }
+}
+
+// classe filial
+class Filial {
+    codigoFilial;
+    apelidoFilial;
+    instituicaoPai;
+    #listaContas = [];
+
+    constructor(codigo, apelido, instituicao) {
+        this.codigoFilial = codigo;
+        this.apelidoFilial = apelido;
+        this.instituicaoPai = instituicao;
+    }
+
+    criarContaCorrente(titular, depositoInicial = 0) {
+        // gera numero: filial + sequencial
+        const sequencial = (this.#listaContas.length + 1).toString().padStart(5, '0');
+        const idGerado = `${this.codigoFilial}-${sequencial}`;
+        
+        const novaConta = new ContaBancaria(idGerado, this, titular, this.instituicaoPai);
+        
+        if(depositoInicial > 0) {
+            novaConta.realizarDeposito(depositoInicial, true);
+        }
+
+        this.#listaContas.push(novaConta);
+        return novaConta;
+    }
+
+    buscarContaNaFilial(id) {
+        return this.#listaContas.find(c => c.idConta === id);
+    }
+}
+
+// classe conta bancaria
+class ContaBancaria {
+    idConta;
+    filial;
+    titular;
+    bancoPertencente;
+    #saldoAtual = 0;
+    #extratoDetalhado = [];
+
+    constructor(id, filial, titular, banco) {
+        this.idConta = id;
+        this.filial = filial;
+        this.titular = titular;
+        this.bancoPertencente = banco;
+    }
+
+    get saldo() { return this.#saldoAtual; }
+    get extrato() { return this.#extratoDetalhado; }
+
+    _addExtrato(descricao, valor) {
+        this.#extratoDetalhado.push({
+            descricao: descricao,
+            valor: valor,
+            data: new Date().toLocaleDateString()
+        });
+    }
+
+    realizarDeposito(valor, isInicial = false) {
+        this.#saldoAtual += valor;
+        const desc = isInicial ? "Bônus de Entrada" : "Recarga (Depósito)";
+        this._addExtrato(desc, valor);
+        this.bancoPertencente.registrarOperacao(this, valor, desc);
+    }
+
+    realizarSaque(valor) {
+        if(valor > this.#saldoAtual) return false;
+        
+        this.#saldoAtual -= valor;
+        this._addExtrato("Saque de Lucros", -valor);
+        this.bancoPertencente.registrarOperacao(this, -valor, "Saque");
+        return true;
+    }
+
+    enviarTransferencia(valor, contaDestino) {
+        if(valor > this.#saldoAtual) return false;
+
+        this.#saldoAtual -= valor;
+        this._addExtrato(`Pix enviado para ${contaDestino.titular.nome}`, -valor);
+        
+        contaDestino.receberTransferencia(valor, this);
+        
+        this.bancoPertencente.registrarOperacao(this, -valor, "Pix Enviado", contaDestino);
+        return true;
+    }
+
+    receberTransferencia(valor, contaRemetente) {
+        this.#saldoAtual += valor;
+        this._addExtrato(`Pix recebido de ${contaRemetente.titular.nome}`, valor);
+        this.bancoPertencente.registrarOperacao(this, valor, "Pix Recebido");
+    }
+}
+
+// classe do cliente/jogador
+class Correntista {
+    nome;
+    documento;
+    
+    constructor(nome, doc) {
+        this.nome = nome;
+        this.documento = doc;
+    }
+}
+
+// inicializacao do sistema do tigrudo
+
+const sistemaRegulador = new ReguladorFinanceiro();
+const bancoTigrudo = new Instituicao("Banco do Tigrudo", sistemaRegulador);
+
+// filiais tematicas
+const filialVip = bancoTigrudo.inaugurarFilial("777", "Sala VIP");
+const filialComum = bancoTigrudo.inaugurarFilial("100", "Entrada");
+
+// cliente padrao pra teste
+const userAdmin = new Correntista("Rei do Tigrinho", "777.777.777-77");
+filialVip.criarContaCorrente(userAdmin, 50000); 
+
+// interacao com o dom (botoes e modais)
+
+const fecharModalBootstrap = (idModal) => {
+    const modalEl = document.getElementById(idModal);
+    const modal = bootstrap.Modal.getInstance(modalEl);
+    modal.hide();
+}
+
+// 1. novo jogador
+document.getElementById('btnSalvarCliente').addEventListener('click', () => {
+    const nome = document.getElementById('cadNome').value;
+    const cpf = document.getElementById('cadCPF').value;
+    const valorIni = Number(document.getElementById('cadValorInicial').value);
+
+    if(!nome || !cpf) { alert("Preencha seus dados pra entrar no jogo!"); return; }
+
+    const novoTitular = new Correntista(nome, cpf);
+    const novaConta = filialVip.criarContaCorrente(novoTitular, valorIni);
+
+    alert(`Bem-vindo ao time!\nAgência: ${novaConta.filial.codigoFilial}\nConta: ${novaConta.idConta}`);
+    
+    document.getElementById('cadNome').value = '';
+    document.getElementById('cadCPF').value = '';
+    document.getElementById('cadValorInicial').value = '';
+    fecharModalBootstrap('modalNovoCliente');
+});
+
+// 2. deposito (recarga)
+document.getElementById('btnExecutarDeposito').addEventListener('click', () => {
+    const numConta = document.getElementById('depContaDestino').value.trim();
+    const valor = Number(document.getElementById('depValor').value);
+
+    const contaAlvo = bancoTigrudo.localizarContaGlobal(numConta);
+
+    if(!contaAlvo) { alert("Conta não achada!"); return; }
+    if(valor <= 0) { alert("Valor inválido!"); return; }
+
+    contaAlvo.realizarDeposito(valor);
+    alert(`Recarga realizada com sucesso!`);
+    fecharModalBootstrap('modalOperacaoDeposito');
+    
+    document.getElementById('depContaDestino').value = '';
+    document.getElementById('depValor').value = '';
+});
+
+// 3. saque
+document.getElementById('btnExecutarSaque').addEventListener('click', () => {
+    const numConta = document.getElementById('saqContaOrigem').value.trim();
+    const valor = Number(document.getElementById('saqValor').value);
+
+    const contaAlvo = bancoTigrudo.localizarContaGlobal(numConta);
+
+    if(!contaAlvo) { alert("Conta não achada!"); return; }
+    if(valor <= 0) { alert("Valor inválido!"); return; }
+
+    if(contaAlvo.realizarSaque(valor)) {
+        alert(`Saque feito! O dinheiro tá na mão.`);
+        fecharModalBootstrap('modalOperacaoSaque');
+        document.getElementById('saqContaOrigem').value = '';
+        document.getElementById('saqValor').value = '';
+    } else {
+        alert("Saldo insuficiente na banca.");
+    }
+});
+
+// 4. transferencia (pix)
+document.getElementById('btnExecutarTransf').addEventListener('click', () => {
+    const cOrigem = document.getElementById('transfOrigem').value.trim();
+    const cDestino = document.getElementById('transfDestino').value.trim();
+    const valor = Number(document.getElementById('transfValor').value);
+
+    if(cOrigem === cDestino) { alert("Não dá pra transferir pra mesma conta."); return; }
+
+    const objOrigem = bancoTigrudo.localizarContaGlobal(cOrigem);
+    const objDestino = bancoTigrudo.localizarContaGlobal(cDestino);
+
+    if(!objOrigem || !objDestino) { alert("Conta errada ou inexistente."); return; }
+    if(valor <= 0) { alert("Valor inválido."); return; }
+
+    if(objOrigem.enviarTransferencia(valor, objDestino)) {
+        alert("Pix enviado com sucesso!");
+        fecharModalBootstrap('modalOperacaoTransferencia');
+    } else {
+        alert("Sem saldo na banca pra transferir.");
+    }
+});
+
+// 5. extrato
+document.getElementById('btnBuscarDados').addEventListener('click', () => {
+    const numConta = document.getElementById('consConta').value.trim();
+    const painel = document.getElementById('painelResultados');
+    const lista = document.getElementById('listaExtrato');
+    const displaySaldo = document.getElementById('displaySaldo');
+
+    const contaObj = bancoTigrudo.localizarContaGlobal(numConta);
+
+    if(!contaObj) {
+        alert("Conta não encontrada.");
+        painel.classList.add('d-none');
+        return;
+    }
+
+    displaySaldo.innerText = contaObj.saldo.toFixed(2);
+    lista.innerHTML = ''; 
+
+    if(contaObj.extrato.length === 0) {
+        lista.innerHTML = '<li class="list-group-item">Sem movimentações ainda.</li>';
+    } else {
+        contaObj.extrato.forEach(item => {
+            // verde neon pra entrada e vermelho pra saida
+            const cor = item.valor >= 0 ? 'text-success' : 'text-danger';
+            const li = document.createElement('li');
+            li.className = 'list-group-item d-flex justify-content-between align-items-center';
+            li.innerHTML = `
+                <span>${item.descricao} <small class="text-muted">(${item.data})</small></span>
+                <span class="fw-bold ${cor}">R$ ${item.valor.toFixed(2)}</span>
+            `;
+            lista.appendChild(li);
+        });
+    }
+
+    painel.classList.remove('d-none');
+});
