@@ -1,10 +1,10 @@
-// aqui comeca a logica do banco do tigrudo
+// vambora thiagão
 
-// classe regulador financeiro (fiscal do jogo)
+// classe regulador financeiro
 class ReguladorFinanceiro {
-    #registroSuspeito = [];
+    registroSuspeito = [];
 
-    // audita se o valor e muito alto (acima de 1000)
+    // verifica movimentacoes suspeitas
     auditarTransacao(conta, quantia, tipoOperacao) {
         if (Math.abs(quantia) > 1000) {
             const alerta = {
@@ -15,7 +15,7 @@ class ReguladorFinanceiro {
                 tipo: tipoOperacao,
                 timestamp: new Date().toLocaleString()
             };
-            this.#registroSuspeito.push(alerta);
+            this.registroSuspeito.push(alerta);
             console.warn("ALERTA: Movimentação de baleia detectada!", alerta);
         }
     }
@@ -24,35 +24,36 @@ class ReguladorFinanceiro {
 // classe principal da instituicao
 class Instituicao {
     nomeFantasia;
-    #regulador;
-    #filiais = [];
-    #historicoGlobal = [];
+    regulador;
+    // lista de filiais ativas
+    filiais = []; 
+    historicoGlobal = [];
 
     constructor(nome, reguladorRef) {
         this.nomeFantasia = nome;
-        this.#regulador = reguladorRef;
+        this.regulador = reguladorRef;
     }
 
     inaugurarFilial(codigo, apelido) {
         const novaFilial = new Filial(codigo, apelido, this);
-        this.#filiais.push(novaFilial);
+        this.filiais.push(novaFilial);
         return novaFilial;
     }
 
     registrarOperacao(contaEnvolvida, valor, descricao, contaDestino = null) {
-        // guardando no log
-        this.#historicoGlobal.push({
+        // registro no log geral
+        this.historicoGlobal.push({
             conta: contaEnvolvida.idConta,
             valor: valor,
             desc: descricao,
             data: new Date()
         });
-        // reportando ao fiscal
-        this.#regulador.auditarTransacao(contaEnvolvida, valor, descricao);
+        // notificacao ao regulador
+        this.regulador.auditarTransacao(contaEnvolvida, valor, descricao);
     }
 
     localizarContaGlobal(idContaBusca) {
-        for (let f of this.#filiais) {
+        for (let f of this.filiais) {
             const encontrada = f.buscarContaNaFilial(idContaBusca);
             if (encontrada) return encontrada;
         }
@@ -65,7 +66,8 @@ class Filial {
     codigoFilial;
     apelidoFilial;
     instituicaoPai;
-    #listaContas = [];
+    // banco de dados das contas
+    listaContas = []; 
 
     constructor(codigo, apelido, instituicao) {
         this.codigoFilial = codigo;
@@ -74,8 +76,8 @@ class Filial {
     }
 
     criarContaCorrente(titular, depositoInicial = 0) {
-        // gera numero: filial + sequencial
-        const sequencial = (this.#listaContas.length + 1).toString().padStart(5, '0');
+        // gera identificador unico da conta
+        const sequencial = (this.listaContas.length + 1).toString().padStart(5, '0');
         const idGerado = `${this.codigoFilial}-${sequencial}`;
         
         const novaConta = new ContaBancaria(idGerado, this, titular, this.instituicaoPai);
@@ -84,12 +86,14 @@ class Filial {
             novaConta.realizarDeposito(depositoInicial, true);
         }
 
-        this.#listaContas.push(novaConta);
+        this.listaContas.push(novaConta);
+        // salva estado atual
+        salvarDados(); 
         return novaConta;
     }
 
     buscarContaNaFilial(id) {
-        return this.#listaContas.find(c => c.idConta === id);
+        return this.listaContas.find(c => c.idConta === id);
     }
 }
 
@@ -99,8 +103,9 @@ class ContaBancaria {
     filial;
     titular;
     bancoPertencente;
-    #saldoAtual = 0;
-    #extratoDetalhado = [];
+    // saldo atual disponivel
+    saldoAtual = 0; 
+    extratoDetalhado = [];
 
     constructor(id, filial, titular, banco) {
         this.idConta = id;
@@ -109,11 +114,12 @@ class ContaBancaria {
         this.bancoPertencente = banco;
     }
 
-    get saldo() { return this.#saldoAtual; }
-    get extrato() { return this.#extratoDetalhado; }
+    // acesso rapido as propriedades
+    get saldo() { return this.saldoAtual; }
+    get extrato() { return this.extratoDetalhado; }
 
     _addExtrato(descricao, valor) {
-        this.#extratoDetalhado.push({
+        this.extratoDetalhado.push({
             descricao: descricao,
             valor: valor,
             data: new Date().toLocaleDateString()
@@ -121,41 +127,47 @@ class ContaBancaria {
     }
 
     realizarDeposito(valor, isInicial = false) {
-        this.#saldoAtual += valor;
+        this.saldoAtual += valor;
         const desc = isInicial ? "Bônus de Entrada" : "Recarga (Depósito)";
         this._addExtrato(desc, valor);
         this.bancoPertencente.registrarOperacao(this, valor, desc);
+        // persiste dados no storage
+        salvarDados(); 
     }
 
     realizarSaque(valor) {
-        if(valor > this.#saldoAtual) return false;
+        if(valor > this.saldoAtual) return false;
         
-        this.#saldoAtual -= valor;
+        this.saldoAtual -= valor;
         this._addExtrato("Saque de Lucros", -valor);
         this.bancoPertencente.registrarOperacao(this, -valor, "Saque");
+        // persiste dados no storage
+        salvarDados(); 
         return true;
     }
 
     enviarTransferencia(valor, contaDestino) {
-        if(valor > this.#saldoAtual) return false;
+        if(valor > this.saldoAtual) return false;
 
-        this.#saldoAtual -= valor;
+        this.saldoAtual -= valor;
         this._addExtrato(`Pix enviado para ${contaDestino.titular.nome}`, -valor);
         
         contaDestino.receberTransferencia(valor, this);
         
         this.bancoPertencente.registrarOperacao(this, -valor, "Pix Enviado", contaDestino);
+        // persiste dados no storage
+        salvarDados(); 
         return true;
     }
 
     receberTransferencia(valor, contaRemetente) {
-        this.#saldoAtual += valor;
+        this.saldoAtual += valor;
         this._addExtrato(`Pix recebido de ${contaRemetente.titular.nome}`, valor);
         this.bancoPertencente.registrarOperacao(this, valor, "Pix Recebido");
     }
 }
 
-// classe do cliente/jogador
+// classe do cliente
 class Correntista {
     nome;
     documento;
@@ -166,20 +178,63 @@ class Correntista {
     }
 }
 
-// inicializacao do sistema do tigrudo
+// inicializacao do sistema
 
 const sistemaRegulador = new ReguladorFinanceiro();
 const bancoTigrudo = new Instituicao("Banco do Tigrudo", sistemaRegulador);
 
-// filiais tematicas
+// criacao das filiais padrao
 const filialVip = bancoTigrudo.inaugurarFilial("777", "Sala VIP");
 const filialComum = bancoTigrudo.inaugurarFilial("100", "Entrada");
 
-// cliente padrao pra teste
-const userAdmin = new Correntista("Rei do Tigrinho", "777.777.777-77");
-filialVip.criarContaCorrente(userAdmin, 50000); 
+// gerenciamento do localstorage
 
-// interacao com o dom (botoes e modais)
+function salvarDados() {
+    // serializa estrutura para backup
+    const backup = bancoTigrudo.filiais.map(f => ({
+        codigo: f.codigoFilial,
+        contas: f.listaContas.map(c => ({
+            id: c.idConta,
+            titular: c.titular,
+            saldo: c.saldoAtual,
+            extrato: c.extratoDetalhado
+        }))
+    }));
+
+    localStorage.setItem('db_tigrudo_v1', JSON.stringify(backup));
+}
+
+function carregarDados() {
+    const raw = localStorage.getItem('db_tigrudo_v1');
+    // encerra se nao houver backup
+    if (!raw) return; 
+
+    const backup = JSON.parse(raw);
+
+    backup.forEach(filialData => {
+        // busca referencia da filial
+        const filialReal = bancoTigrudo.filiais.find(f => f.codigoFilial === filialData.codigo);
+        
+        if (filialReal) {
+            // reconstroi instancias das contas
+            filialReal.listaContas = filialData.contas.map(cData => {
+                const titularObj = new Correntista(cData.titular.nome, cData.titular.documento);
+                const contaRecuperada = new ContaBancaria(cData.id, filialReal, titularObj, bancoTigrudo);
+                
+                // restaura valores
+                contaRecuperada.saldoAtual = cData.saldo;
+                contaRecuperada.extratoDetalhado = cData.extrato;
+                
+                return contaRecuperada;
+            });
+        }
+    });
+}
+
+// executa carga inicial
+carregarDados();
+
+// controle de interface e eventos
 
 const fecharModalBootstrap = (idModal) => {
     const modalEl = document.getElementById(idModal);
@@ -187,7 +242,7 @@ const fecharModalBootstrap = (idModal) => {
     modal.hide();
 }
 
-// 1. novo jogador
+// 1. cadastro de usuario
 document.getElementById('btnSalvarCliente').addEventListener('click', () => {
     const nome = document.getElementById('cadNome').value;
     const cpf = document.getElementById('cadCPF').value;
@@ -206,7 +261,7 @@ document.getElementById('btnSalvarCliente').addEventListener('click', () => {
     fecharModalBootstrap('modalNovoCliente');
 });
 
-// 2. deposito (recarga)
+// 2. operacao de deposito
 document.getElementById('btnExecutarDeposito').addEventListener('click', () => {
     const numConta = document.getElementById('depContaDestino').value.trim();
     const valor = Number(document.getElementById('depValor').value);
@@ -224,7 +279,7 @@ document.getElementById('btnExecutarDeposito').addEventListener('click', () => {
     document.getElementById('depValor').value = '';
 });
 
-// 3. saque
+// 3. operacao de saque
 document.getElementById('btnExecutarSaque').addEventListener('click', () => {
     const numConta = document.getElementById('saqContaOrigem').value.trim();
     const valor = Number(document.getElementById('saqValor').value);
@@ -244,7 +299,7 @@ document.getElementById('btnExecutarSaque').addEventListener('click', () => {
     }
 });
 
-// 4. transferencia (pix)
+// 4. transferencia entre contas
 document.getElementById('btnExecutarTransf').addEventListener('click', () => {
     const cOrigem = document.getElementById('transfOrigem').value.trim();
     const cDestino = document.getElementById('transfDestino').value.trim();
@@ -266,7 +321,7 @@ document.getElementById('btnExecutarTransf').addEventListener('click', () => {
     }
 });
 
-// 5. extrato
+// 5. consulta de extrato
 document.getElementById('btnBuscarDados').addEventListener('click', () => {
     const numConta = document.getElementById('consConta').value.trim();
     const painel = document.getElementById('painelResultados');
@@ -287,8 +342,8 @@ document.getElementById('btnBuscarDados').addEventListener('click', () => {
     if(contaObj.extrato.length === 0) {
         lista.innerHTML = '<li class="list-group-item">Sem movimentações ainda.</li>';
     } else {
-        contaObj.extrato.forEach(item => {
-            // verde neon pra entrada e vermelho pra saida
+        // ordenacao decrescente por data
+        [...contaObj.extrato].reverse().forEach(item => {
             const cor = item.valor >= 0 ? 'text-success' : 'text-danger';
             const li = document.createElement('li');
             li.className = 'list-group-item d-flex justify-content-between align-items-center';
