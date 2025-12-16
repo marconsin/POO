@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <main>
+        <section class="entrada">
+            <input type="text" id="placaEntrada" placeholder="Placa"> </input>
+            <button type="button" id="registrarEntrada">Registrar Entrada</button>
+        </section>
+
+        <section class="saida">
+            <input type="text" id="placaSaida" placeholder="Placa"> </input>
+            <button type="button" id="registrarSaida">Registrar Saida</button>
+        </section>
+
+        <section class="cadastrarveiculo">
+            <input type="text" placeholder="placa" id="NovoVeiculoPlaca"></input>
+            <input type="text" placeholder="modelo" id="NovoVeiculoModelo"></input>
+            <input type="text" placeholder="cor" id="NovoVeiculoCor"></input>
+            <input type="text" placeholder="ano" id="NovoVeiculoAno"></input> <br>
+            <input type="radio" name="tipoVeiculo" id="radioCarro">Carro</input> <br>
+            <input type="radio" name="tipoVeiculo" id="radioMoto">Moto</input> <br>
+            <input type="radio" name="tipoVeiculo" id="radioCaminhao">Caminhão</input> <br>
+            <div class="divTipoVeiculo">
+                <div id="divradioMoto">
+                    <input type="text" placeholder="tipo de Vaga[moto/veiculo]" id="NovoVeiculoTipoVaga"></input>
+                    <input type="text" placeholder="Quantas Vagas?" id="NovoVeiculoQtsVagas"></input>
+                </div>
+                <div id="divradioCarro">
+                    <input type="text" placeholder="Precisa de carregamento?" id="NovoVeiculoCarregamentoE"></input>
+                    <input type="text" placeholder="Quantas Portas?" id="NovoVeiculoQtsPortas"></input>
+                </div>
+                <div id="divradioCaminhao">
+                    <input type="text" placeholder="Quantidade de eixos?" id="NovoVeiculoEixos"></input>
+                    <input type="text" placeholder="Altura?" id="NovoVeiculoAltura"></input>
+                </div>
+            </div>
+            <button type="button" id="CadastrarVeiculo">Cadastrar Novo Veículo</button>
+        </section>
+
+        <section class="relatorios">
+            <button type="button" id="ExibirVeiculos">Exibir Veiculos Cadastrados</button>
+            <button type="button" id="ExibirVeiculosEstacionados">Exibir Veiculos no Pátio</button>
+            <input type="text" placeholder="placa" id="HistoricoPlaca"></input>
+            <button type="button" id="ExibirHistoricoVeiculo">Exibir Historico Veiculos</button>
+            <span id="relatorios"></span>
+        </section>
+    </main>
+
+    <script src="controleEstacionamento.js" defer></script>
+</body>
+
+</html>

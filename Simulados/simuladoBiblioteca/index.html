@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Biblioteca</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <main>
+        <section class="entrada">
+            <input type="text" id="codigoEntrada" placeholder="Código do Livro/DVD">
+            <button type="button" id="registrarEmprestimo">Registrar Empréstimo</button>
+        </section>
+
+        <section class="saida">
+            <input type="text" id="codigoSaida" placeholder="Código do Livro/DVD">
+            <button type="button" id="registrarDevolucao">Registrar Devolução</button>
+        </section>
+
+        <section class="cadastrarveiculo">
+            <input type="text" placeholder="Código" id="NovoMaterialCodigo">
+            <input type="text" placeholder="Título" id="NovoMaterialTitulo">
+            <input type="text" placeholder="Ano" id="NovoMaterialAno"> <br>
+            
+            <input type="radio" name="tipoMaterial" id="radioLivro">Livro <br>
+            <input type="radio" name="tipoMaterial" id="radioRevista">Revista <br>
+            <input type="radio" name="tipoMaterial" id="radioDVD">DVD <br>
+            
+            <div class="divTipoVeiculo">
+                <div id="divradioLivro" style="display:none">
+                    <input type="text" placeholder="Autor" id="NovoMaterialAutor">
+                </div>
+                <div id="divradioRevista" style="display:none">
+                    <input type="text" placeholder="Número da Edição" id="NovoMaterialEdicao">
+                </div>
+                <div id="divradioDVD" style="display:none">
+                    <input type="text" placeholder="Duração (min)" id="NovoMaterialDuracao">
+                </div>
+            </div>
+
+            <button type="button" id="CadastrarMaterial">Cadastrar Novo Material</button>
+        </section>
+
+        <section class="relatorios">
+            <button type="button" id="ExibirAcervo">Exibir Acervo (Todos)</button>
+            <button type="button" id="ExibirEmprestados">Exibir Itens Emprestados</button>
+            <input type="text" placeholder="Código do Item" id="HistoricoCodigo">
+            <button type="button" id="ExibirHistorico">Exibir Histórico do Item</button>
+            <span id="relatorios"></span>
+        </section>
+    </main>
+
+    <script src="biblioteca.js" defer></script>
+</body>
+</html>

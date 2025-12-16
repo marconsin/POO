@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema Hospitalar</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <main>
+        <section class="entrada">
+            <h3>Internação</h3>
+            <input type="text" id="cpfInternacao" placeholder="CPF do Paciente">
+            <button type="button" id="btnInternar">Registrar Internação</button>
+        </section>
+
+        <section class="saida">
+            <h3>Alta Médica</h3>
+            <input type="text" id="cpfAlta" placeholder="CPF do Paciente">
+            <button type="button" id="btnAlta">Registrar Alta</button>
+        </section>
+
+        <section class="cadastrarveiculo">
+            <h3>Novo Paciente</h3>
+            <input type="text" placeholder="CPF" id="NovoPacienteCPF">
+            <input type="text" placeholder="Nome Completo" id="NovoPacienteNome">
+            <input type="number" placeholder="Idade" id="NovoPacienteIdade"> <br>
+            
+            <p>Tipo de Atendimento:</p>
+            <input type="radio" name="tipoPaciente" id="radioParticular">Particular <br>
+            <input type="radio" name="tipoPaciente" id="radioConvenio">Convênio <br>
+            <input type="radio" name="tipoPaciente" id="radioSUS">SUS <br>
+            
+            <div class="divTipoVeiculo">
+                <div id="divradioParticular" style="display:none">
+                    <input type="text" placeholder="Número do Quarto" id="InputQuarto">
+                </div>
+                
+                <div id="divradioConvenio" style="display:none">
+                    <input type="text" placeholder="Nome do Plano" id="InputPlano">
+                    <input type="text" placeholder="Tem Carência? (Sim/Não)" id="InputCarencia">
+                </div>
+                
+                <div id="divradioSUS" style="display:none">
+                    <input type="text" placeholder="Número Cartão SUS" id="InputCartaoSUS">
+                </div>
+            </div>
+
+            <button type="button" id="btnCadastrarPaciente">Salvar Paciente</button>
+        </section>
+
+        <section class="relatorios">
+            <h3>Relatórios</h3>
+            <button type="button" id="btnListarInternados">Listar Pacientes Internados</button>
+            <button type="button" id="btnListarTodos">Ver Base de Pacientes</button>
+            
+            <br><br>
+            <input type="text" placeholder="Buscar Histórico por CPF" id="BuscaHistoricoCPF">
+            <button type="button" id="btnHistorico">Ver Histórico</button>
+            
+            <span id="relatorios" style="display:block; margin-top:15px; border-top:1px dashed #000;"></span>
+        </section>
+    </main>
+
+    <script src="hospital.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+section{
+    margin: 20px;   
+    width: 200px;
+    height: 100px;
+}
+
+main{display: flex; flex-wrap: wrap;}
+
+.divTipoVeiculo{
+background-color: aliceblue;
+        width: 200px;
+    height: 50px;
+}
