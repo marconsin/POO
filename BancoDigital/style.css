@@ -1,46 +1,49 @@
-/* trava a largura da tela */
+/* layout principal */
 .layout-fixo {
-    width: 1000px;
-    margin: 0 auto;
+    width: 100%;
+    margin: 0;
     background-color: #121212;
     min-height: 100vh;
 }
 
-/* fundo geral */
+/* configuracoes globais */
 body { 
-    background-color: #000; 
+    background-color: #121212; 
+    margin: 0;
     color: #e0e0e0;
     font-family: -apple-system, sans-serif;
-    overflow-x: auto;
+    overflow-x: hidden;
 }
 
-/* inputs escuros */
+/* formularios */
 .form-control {
     background-color: #2a2a2a;
     border: 1px solid #444; 
     color: #fff;
+    border-radius: 4px;
 }
 
 .form-control:focus {
     background-color: #333;
     color: #fff;
     box-shadow: none;
-    border-color: #fec300; /* amarelo padrao */
+    border-color: #fec300; 
 }
 
-/* cabecalho amarelo solido */
+/* cabecalho */
 .brand-header { 
     background-color: #fec300; 
     color: #ffffff; 
-    padding: 20px 0; 
+    padding: 20px 20px;
     margin-bottom: 30px; 
 }
 
 /* cards */
 .card {
     background-color: #1e1e1e;
-    border: 1px solid #333;
+    border: 1px solid #f7f458;
     box-shadow: none;
+    margin-bottom: 15px;
 }
 
 .card-title {
@@ -58,17 +61,18 @@ body {
     margin-bottom: 10px; 
 }
 
-/* hover simples mudando a borda */
+/* interatividade dos cards */
 .action-card { 
     cursor: pointer; 
-    transition: border-color 0.2s; 
+    transition: background-color 0.2s;
 }
 
 .action-card:hover { 
+    background-color: #252525;
     border-color: #fec300; 
 }
 
-/* modais escuros */
+/* modais */
 .modal-content {
     background-color: #1e1e1e;
     border: 1px solid #444;
@@ -79,22 +83,26 @@ body {
     border-color: #333;
 }
 
+/* utilitarios de texto */
 .text-gold {
     color: #fec300 !important;
 }
 
-/* botoes amarelos */
+/* botoes */
 .btn-gold {
     background-color: #fec300;
-    color: #fffcfc;
+    color: #000;
     border: none;
     font-weight: bold;
+    padding: 10px 20px;
 }
 
 .btn-gold:hover {
     background-color: #e6b000;
+    color: #000;
 }
 
+/* listas */
 .list-group-item {
     background-color: transparent;
     border-bottom: 1px solid #333;
